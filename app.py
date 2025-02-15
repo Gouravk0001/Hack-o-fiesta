@@ -1,20 +1,33 @@
-from flask import Flask, render_template, jsonify
 import threading
 import cv2
 import cvzone
 import numpy as np
 import pickle
 import time
+import math
+from flask import Flask, render_template, jsonify, request
 
-app = Flask(__name__, template_folder='site')
+app = Flask(__name__, template_folder="site")
+
+parking_lots = {
+    "CarPark1.mp4": {"posfile": "CarPark1.pkl", "address": "Vallet parking phoenix palassio mall", "lat": 26.808985359151155, "lng": 81.01240011349245},
+    "CarPark2.mp4": {"posfile": "CarPark2.pkl", "address": "Lullu Parking", "lat": 26.785440205615682, "lng": 80.99146827973452},
+}
 
 width, height = 115, 44
 parking_lot_data = {}
-parking_lot_addresses = {
-    "CarPark1.mp4": "123 Main St, Cityville",
-    "CarPark2.mp4": "456 Elm St, Townsville",
-}
 
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c  
 def process_video(video_path, car_park_pos_file):
     with open(car_park_pos_file, 'rb') as f:
         poslist = pickle.load(f)
@@ -34,8 +47,8 @@ def process_video(video_path, car_park_pos_file):
     while True:
         success, img = vid.read()
         if not success:
-            vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            success, img = vid.read()
+            vid.set(cv2.CAP_PROP_POS_FRAMES, 0)  
+            continue
 
         imggray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         imgblur = cv2.GaussianBlur(imggray, (3, 3), 1)
@@ -45,36 +58,43 @@ def process_video(video_path, car_park_pos_file):
         imgdialate = cv2.dilate(imgmedian, kernel, iterations=1)
 
         freespaces = checkParkSpace(imgdialate)
-        parking_lot_data[video_path] = freespaces
-
+        parking_lot_data[video_path] = {"freespaces": freespaces, "lat": parking_lots[video_path]["lat"], "lng": parking_lots[video_path]["lng"]}
+        cv2.imshow(f"Processed", img)
         cv2.waitKey(1)
 
 @app.route('/')
 def index():
-    if not parking_lot_data:
-        return "No video data available", 404
+    return render_template('index.html')
 
-    max_lot = max(parking_lot_data, key=parking_lot_data.get)
-    max_spaces = parking_lot_data[max_lot]
-    lot_address = parking_lot_addresses.get(max_lot, "Address not available")
-    
-    return render_template('index.html', lot_name=max_lot, free_spaces=max_spaces, address=lot_address)
+@app.route('/get_closest_parking', methods=['GET'])
+def get_closest_parking():
+    lat = float(request.args.get('lat'))
+    lng = float(request.args.get('lng'))
 
-@app.route('/get_parking_data')
-def get_parking_data():
     if not parking_lot_data:
         return jsonify({"error": "No video data available"}), 404
 
-    max_lot = max(parking_lot_data, key=parking_lot_data.get)
-    max_spaces = parking_lot_data[max_lot]
-    lot_address = parking_lot_addresses.get(max_lot, "Address not available")
-    
-    return jsonify({"lot_name": max_lot, "free_spaces": max_spaces, "address": lot_address})
+    closest_lot = None
+    min_distance = float('inf')
+
+    for lot, data in parking_lot_data.items():
+        dist = haversine(lat, lng, data["lat"], data["lng"])
+        if data["freespaces"] > 0 and dist < min_distance:
+            min_distance = dist
+            closest_lot = lot
+
+    if closest_lot:
+        lot_name = parking_lots[closest_lot]["address"]
+        free_spaces = parking_lot_data[closest_lot]["freespaces"]
+        return jsonify({"lot_name": lot_name, "free_spaces": free_spaces, "address": lot_name})
+    else:
+        return jsonify({"error": "No parking lot with free spaces found"}), 404
 
 def start_video_processing():
-    video_paths = ["CarPark1.mp4"]
+    video_paths = ["CarPark1.mp4", "CarPark2.mp4"]
     car_park_pos_mapping = {
         "CarPark1.mp4": "CarPark1.pkl",
+        "CarPark2.mp4": "CarPark2.pkl",
     }
 
     threads = []
