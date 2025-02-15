@@ -17,7 +17,7 @@
                         .then(data => {
                             if (data.error) {
                                 alert(data.error);
-                            } else {
+                            } else {git
                                 document.getElementById("parkingInfo").innerHTML = `
                                     <h2>Closest Parking Lot</h2>
                                     <p><strong>Parking Lot:</strong> ${data.lot_name}</p>
@@ -27,10 +27,10 @@
                             }
                         });
                 }, function() {
-                    alert("Geolocation failed or permission denied.");
+                    alert("Geolocation failed.");
                 });
             } else {
-                alert("Geolocation is not supported by this browser.");
+                alert("Geolocation is not supported");
             }
         }
 
@@ -38,6 +38,6 @@
     </script>
 </head>
 <body>
-    <p id="parkingInfo">Loading parking lot information...</p>
+    <p id="parkingInfo">Loading info........</p>
 </body>
 </html>
