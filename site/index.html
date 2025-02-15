@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Closest Parking</title>
+    <meta http-equiv="refresh" content="1">
+    <script>
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    fetch(`/get_closest_parking?lat=${lat}&lng=${lon}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert(data.error);
+                            } else {
+                                document.getElementById("parkingInfo").innerHTML = `
+                                    <h2>Closest Parking Lot</h2>
+                                    <p><strong>Parking Lot:</strong> ${data.lot_name}</p>
+                                    <p><strong>Free Spaces:</strong> ${data.free_spaces}</p>
+                                    <p><strong>Address:</strong> <a href="https://www.google.com/maps/search/${data.address}" target="_blank">${data.address}</a></p>
+                                `;
+                            }
+                        });
+                }, function() {
+                    alert("Geolocation failed or permission denied.");
+                });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        window.onload = getUserLocation; 
+    </script>
+</head>
+<body>
+    <p id="parkingInfo">Loading parking lot information...</p>
+</body>
+</html>
