@@ -10,8 +10,8 @@ from flask import Flask, render_template, jsonify, request
 app = Flask(__name__, template_folder="site")
 
 parking_lots = {
-    "CarPark1.mp4": {"posfile": "CarPark1.pkl", "address": "Vallet parking phoenix palassio mall", "lat": 26.808985359151155, "lng": 81.01240011349245},
-    "CarPark2.mp4": {"posfile": "CarPark2.pkl", "address": "Lullu Parking", "lat": 26.785440205615682, "lng": 80.99146827973452},
+    "CarPark1.mp4": {"posfile": "CarPark1.pkl", "address": "Vallet parking phoenix palassio mall Lucknow", "lat": 26.808985359151155, "lng": 81.01240011349245},
+    "CarPark2.mp4": {"posfile": "CarPark2.pkl", "address": "Lullu Mall Parking Lucknow", "lat": 26.785440205615682, "lng": 80.99146827973452},
 }
 
 width, height = 115, 44
@@ -59,7 +59,6 @@ def process_video(video_path, car_park_pos_file):
 
         freespaces = checkParkSpace(imgdialate)
         parking_lot_data[video_path] = {"freespaces": freespaces, "lat": parking_lots[video_path]["lat"], "lng": parking_lots[video_path]["lng"]}
-        cv2.imshow(f"Processed", img)
         cv2.waitKey(1)
 
 @app.route('/')
